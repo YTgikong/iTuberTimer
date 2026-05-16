@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分段計時器 🌿</title>
+<style>
+:root {
+  --bg:#e7ece2; --card:#f2f5ef;
+  --g1:#7a9e78; --g2:#4e7050; --g3:#b8d4b5;
+  --txt:#3a4e39; --txt2:#7c9a7c;
+  --grass:#8db882; --grass2:#6a9865;
+  --done:#3d6e47; --cur:#98d0a0; --bar:#cce4c8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--txt);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:22px 16px 40px}
+.w{width:100%;max-width:480px}
+h1{font-size:1.5rem;font-weight:700;color:var(--g2);letter-spacing:3px;margin-bottom:18px}
+
+.card{background:var(--card);border-radius:18px;padding:22px;
+  box-shadow:0 2px 12px rgba(78,112,80,.12);margin-bottom:14px}
+
+/* Grass */
+.grass-area{height:130px;background:#fff;border-radius:16px;position:relative;overflow:hidden;
+  box-shadow:0 2px 12px rgba(78,112,80,.10);margin-bottom:14px}
+.grass-ground{position:absolute;bottom:0;left:0;right:0;height:34px;
+  background:linear-gradient(180deg,var(--grass) 0%,var(--grass2) 100%)}
+
+@keyframes float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
+
+/* Settings controls */
+.row-c{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:6px}
+.circ{width:38px;height:38px;border-radius:50%;border:2px solid var(--g1);background:transparent;
+  color:var(--g1);font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:.2s;line-height:1}
+.circ:hover{background:var(--g1);color:#fff}
+.count-num{font-size:2rem;font-weight:800;color:var(--g2);min-width:36px;text-align:center}
+.sub-lbl{text-align:center;color:var(--txt2);font-size:.8rem;margin-bottom:18px}
+
+/* Segment rows */
+.seg-row{display:flex;align-items:center;gap:8px;padding:9px 14px;
+  background:var(--bg);border-radius:10px;margin-bottom:8px}
+.seg-lbl{font-size:.83rem;color:var(--txt2);width:44px;flex-shrink:0}
+.adj{display:flex;align-items:center;gap:6px;flex:1}
+.time-input{
+  width:52px;padding:5px 4px;
+  border:1.5px solid var(--g3);border-radius:8px;
+  text-align:center;font-size:1rem;font-weight:700;
+  background:#fff;color:var(--txt);
+  font-variant-numeric:tabular-nums;
+  transition:border-color .15s;
+  -moz-appearance:textfield;
+}
+.time-input::-webkit-inner-spin-button,
+.time-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.time-input:focus{outline:none;border-color:var(--g1)}
+.time-unit{font-size:.82rem;color:var(--txt2)}
+
+/* Start btn */
+.start-btn{width:100%;padding:15px;background:var(--g1);color:#fff;border:none;
+  border-radius:14px;font-size:1.05rem;letter-spacing:3px;cursor:pointer;transition:.2s}
+.start-btn:hover{background:var(--g2)}
+
+/* Timer display */
+.time-big{font-size:4.5rem;font-weight:800;color:var(--g2);text-align:center;
+  letter-spacing:4px;font-variant-numeric:tabular-nums;margin:6px 0 8px}
+.seg-info{text-align:center;color:var(--txt2);font-size:.88rem;margin-bottom:20px}
+
+/* Progress */
+.prog-wrap{margin-bottom:20px}
+.prog-track{height:12px;background:var(--bar);border-radius:6px;
+  position:relative;display:flex;overflow:visible}
+.prog-seg{position:relative;height:100%;overflow:hidden}
+.prog-fill{height:100%;width:0%;transition:width .5s ease}
+.prog-fill.done{width:100%!important;background:var(--done)}
+.prog-fill.cur{background:var(--cur)}
+.prog-dot{position:absolute;top:50%;transform:translateY(-50%);
+  width:14px;height:14px;border-radius:50%;border:2px solid #9dbf9e;
+  background:var(--bar);z-index:4;transition:.3s}
+.prog-dot.done{background:var(--done);border-color:var(--done)}
+.prog-dot.cur{background:var(--cur);border-color:var(--g1)}
+.prog-labels{display:flex;margin-top:8px}
+.prog-label{font-size:.68rem;color:var(--txt2);text-align:right;padding-right:6px}
+
+/* Controls */
+.controls{display:flex;gap:12px;justify-content:center}
+.ctrl-btn{padding:11px 28px;border-radius:12px;font-size:.95rem;border:none;cursor:pointer;transition:.2s}
+.pause-btn{background:var(--g1);color:#fff}
+.pause-btn:hover{background:var(--g2)}
+.pause-btn:disabled{background:var(--g3);cursor:default}
+.reset-btn{background:#fff;color:var(--txt);border:1.5px solid var(--g3)}
+.reset-btn:hover{background:var(--bg)}
+
+/* Owl wrapper */
+.owl-wrap{position:absolute;display:flex;align-items:center;justify-content:center;user-select:none}
+.owl-wrap img{width:100%;height:100%;object-fit:contain}
+.owl-emoji{display:none;font-size:38px;line-height:1;text-align:center}
+</style>
+</head>
+<body>
+
+<h1>🌿 分段計時器</h1>
+
+<!-- Settings -->
+<div id="v-settings" class="w">
+  <div class="card">
+    <div class="row-c">
+      <button class="circ" id="btn-seg-minus">−</button>
+      <span class="count-num" id="seg-cnt-disp">3</span>
+      <button class="circ" id="btn-seg-plus">＋</button>
+    </div>
+    <div class="sub-lbl">段數（1 ~ 8 段）</div>
+    <div id="seg-list"></div>
+  </div>
+  <div class="grass-area w" id="g-settings"><div class="grass-ground"></div></div>
+  <button class="start-btn" id="btn-start">▶ 開 始 計 時</button>
+</div>
+
+<!-- Timer -->
+<div id="v-timer" class="w" style="display:none">
+  <div class="grass-area" id="g-timer"><div class="grass-ground"></div></div>
+  <div class="card">
+    <div class="time-big" id="d-total">00:00</div>
+    <div class="seg-info" id="d-info">第 1 段：剩 00:00　共 1 段</div>
+    <div class="prog-wrap">
+      <div class="prog-track" id="p-track"></div>
+      <div class="prog-labels" id="p-labels"></div>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn pause-btn" id="btn-pause">⏸ 暫停</button>
+      <button class="ctrl-btn reset-btn" id="btn-reset">↩ 重設</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const IMG = {
+  run:      'https://raw.githubusercontent.com/YTgikong/iTuberTimer/refs/heads/main/owl-run.png',
+  idle:     'https://raw.githubusercontent.com/YTgikong/iTuberTimer/refs/heads/main/owl-idle.png',
+  jump:     'https://raw.githubusercontent.com/YTgikong/iTuberTimer/refs/heads/main/owl-jump.png',
+  thumbsup: 'https://raw.githubusercontent.com/YTgikong/iTuberTimer/refs/heads/main/owl-thumbsup.png',
+  wave:     'https://raw.githubusercontent.com/YTgikong/iTuberTimer/refs/heads/main/owl-wave.png',
+};
+const EMOJI = { run:'🦉', idle:'🦉', jump:'🦉', thumbsup:'🦉👍', wave:'🦉👋' };
+
+// ── Audio ────────────────────────────────────────────
+let _actx;
+const getACtx = () => _actx || (_actx = new (window.AudioContext || window.webkitAudioContext)());
+function bell(freq, delay=0, vol=.35, dur=1.4) {
+  const ctx=getACtx(), osc=ctx.createOscillator(), g=ctx.createGain();
+  osc.connect(g); g.connect(ctx.destination); osc.type='sine';
+  osc.frequency.setValueAtTime(freq, ctx.currentTime+delay);
+  g.gain.setValueAtTime(vol, ctx.currentTime+delay);
+  g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+delay+dur);
+  osc.start(ctx.currentTime+delay); osc.stop(ctx.currentTime+delay+dur);
+}
+const sfxSegEnd   = () => bell(660);
+const sfxFinalEnd = () => { for (let i=0;i<5;i++) bell(1100, i*.38, .28); };
+
+// ── State ────────────────────────────────────────────
+let segCount = 3;
+let segTimes = []; // [{m,s}]
+let timer = { running:false, paused:false, durs:[], total:0, remTotal:0, curSeg:0, remSeg:0 };
+
+const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+function ensureSegTimes() {
+  while (segTimes.length < segCount) segTimes.push({m:1, s:0});
+  segTimes = segTimes.slice(0, segCount);
+}
+
+// ── Settings UI ──────────────────────────────────────
+function renderSegList() {
+  ensureSegTimes();
+  const list = document.getElementById('seg-list');
+  list.innerHTML = '';
+  segTimes.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'seg-row';
+    row.innerHTML = `
+      <span class="seg-lbl">第 ${i+1} 段</span>
+      <div class="adj">
+        <input type="number" class="time-input" id="em${i}" min="0" max="99" value="${t.m}">
+        <span class="time-unit">分</span>
+        <input type="number" class="time-input" id="es${i}" min="0" max="59" value="${t.s}">
+        <span class="time-unit">秒</span>
+      </div>`;
+    list.appendChild(row);
+    // Sync inputs → segTimes
+    document.getElementById(`em${i}`).addEventListener('input', e => {
+      t.m = Math.max(0, Math.min(99, parseInt(e.target.value)||0));
+    });
+    document.getElementById(`es${i}`).addEventListener('input', e => {
+      t.s = Math.max(0, Math.min(59, parseInt(e.target.value)||0));
+    });
+  });
+}
+
+document.getElementById('btn-seg-minus').addEventListener('click', () => {
+  if (segCount > 1) { segCount--; document.getElementById('seg-cnt-disp').textContent = segCount; renderSegList(); }
+});
+document.getElementById('btn-seg-plus').addEventListener('click', () => {
+  if (segCount < 8) { segCount++; document.getElementById('seg-cnt-disp').textContent = segCount; renderSegList(); }
+});
+
+// ── Settings Grass Owl ───────────────────────────────
+function initSettingsGrass() {
+  const g = document.getElementById('g-settings');
+  g.querySelectorAll('.owl-wrap').forEach(e => e.remove());
+
+  const wrap = makeOwlEl();
+  wrap.style.cssText += 'bottom:34px;left:50%;transform:translateX(-50%);animation:float 2.4s ease-in-out infinite;';
+  setOwlEl(wrap, 'wave');
+  g.appendChild(wrap);
+}
+
+// ── Owl element factory ──────────────────────────────
+const OWL_W = 56, GROUND = 34;
+
+function makeOwlEl() {
+  const wrap = document.createElement('div');
+  wrap.className = 'owl-wrap';
+  wrap.style.cssText = `width:${OWL_W}px;height:${OWL_W}px;`;
+
+  const img = document.createElement('img');
+  const span = document.createElement('span');
+  span.className = 'owl-emoji';
+
+  img.addEventListener('error', () => {
+    img.style.display = 'none';
+    span.style.display = 'block';
+    wrap.dataset.useEmoji = '1';
+  });
+
+  wrap.appendChild(img);
+  wrap.appendChild(span);
+  return wrap;
+}
+
+function setOwlEl(wrap, state) {
+  const img  = wrap.querySelector('img');
+  const span = wrap.querySelector('.owl-emoji');
+  if (img.style.display === 'none') {
+    span.textContent = EMOJI[state] || '🦉';
+  } else {
+    if (img.src !== IMG[state]) img.src = IMG[state];
+  }
+}
+
+// ── Owl Animation ────────────────────────────────────
+let owls = [], rafId = null, lastTs = 0;
+
+function initTimerOwls() {
+  const g = document.getElementById('g-timer');
+  g.querySelectorAll('.owl-wrap').forEach(e => e.remove());
+  const W = g.clientWidth;
+
+  const configs = [
+    { x: W*0.07,  vx:  1.10, ph: 0 },
+    { x: W*0.44,  vx: -0.78, ph: Math.PI*0.65 },
+    { x: W*0.72,  vx:  1.45, ph: Math.PI*1.35 },
+  ];
+
+  owls = configs.map(cfg => {
+    const wrap = makeOwlEl();
+    wrap.style.position = 'absolute';
+    wrap.style.bottom   = GROUND + 'px';
+    wrap.style.left     = cfg.x + 'px';
+    setOwlEl(wrap, 'idle');
+    g.appendChild(wrap);
+    return { wrap, x: cfg.x, vx: cfg.vx, ph: cfg.ph, state: 'idle', jt: 0 };
+  });
+}
+
+function setOwlsState(state) {
+  owls.forEach(o => {
+    if (state === 'jump') {
+      if (o.state !== 'jump') { o.state = 'jump'; o.jt = 90; }
+    } else {
+      if (o.state !== 'jump') o.state = state;
+    }
+  });
+}
+
+function animLoop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 16.67, 3);
+  lastTs = ts;
+
+  const g = document.getElementById('g-timer');
+  if (!g) { rafId = null; return; }
+  const W = g.clientWidth;
+
+  owls.forEach(o => {
+    const { wrap } = o;
+
+    if (o.state === 'run') {
+      o.x += o.vx * dt;
+      if (o.x <= 0)          { o.x = 0;          o.vx =  Math.abs(o.vx); }
+      if (o.x >= W - OWL_W) { o.x = W - OWL_W;  o.vx = -Math.abs(o.vx); }
+      o.ph += 0.12 * dt;
+      wrap.style.bottom    = (GROUND + Math.max(0, Math.sin(o.ph) * 4)) + 'px';
+      wrap.style.transform = o.vx < 0 ? 'scaleX(-1)' : '';
+      setOwlEl(wrap, 'run');
+
+    } else if (o.state === 'jump') {
+      o.jt -= dt;
+      const prog = 1 - Math.max(o.jt, 0) / 90;
+      wrap.style.bottom = (GROUND + Math.sin(Math.PI * prog) * 32) + 'px';
+      setOwlEl(wrap, 'jump');
+      if (o.jt <= 0) {
+        o.jt = 0;
+        o.state = (timer.running && !timer.paused) ? 'run' : 'idle';
+        wrap.style.bottom = GROUND + 'px';
+      }
+
+    } else if (o.state === 'idle') {
+      wrap.style.bottom    = GROUND + 'px';
+      wrap.style.transform = '';
+      setOwlEl(wrap, 'idle');
+
+    } else if (o.state === 'thumbsup') {
+      wrap.style.bottom    = GROUND + 'px';
+      wrap.style.transform = '';
+      setOwlEl(wrap, 'thumbsup');
+    }
+
+    wrap.style.left = o.x + 'px';
+  });
+
+  rafId = requestAnimationFrame(animLoop);
+}
+
+// ── Progress Bar ─────────────────────────────────────
+function buildProgressBar() {
+  const track  = document.getElementById('p-track');
+  const labels = document.getElementById('p-labels');
+  track.innerHTML = ''; labels.innerHTML = '';
+  let cumPct = 0;
+  timer.durs.forEach((dur, i) => {
+    const pct = dur / timer.total * 100;
+    const n   = timer.durs.length;
+    const seg = document.createElement('div');
+    seg.className = 'prog-seg'; seg.style.width = pct + '%';
+    if      (n===1)   seg.style.borderRadius = '6px';
+    else if (i===0)   seg.style.borderRadius = '6px 0 0 6px';
+    else if (i===n-1) seg.style.borderRadius = '0 6px 6px 0';
+    const fill = document.createElement('div');
+    fill.className = 'prog-fill'; fill.id = `pf${i}`;
+    seg.appendChild(fill); track.appendChild(seg);
+    cumPct += pct;
+    const dot = document.createElement('div');
+    dot.className = 'prog-dot'; dot.id = `pd${i}`;
+    dot.style.left = `calc(${cumPct}% - 7px)`;
+    track.appendChild(dot);
+    const lbl = document.createElement('div');
+    lbl.className = 'prog-label'; lbl.style.width = pct + '%';
+    lbl.textContent = fmt(dur); labels.appendChild(lbl);
+  });
+}
+
+function refreshProgressBar() {
+  timer.durs.forEach((dur, i) => {
+    const fill = document.getElementById(`pf${i}`);
+    const dot  = document.getElementById(`pd${i}`);
+    if (!fill || !dot) return;
+    if (i < timer.curSeg) {
+      fill.className = 'prog-fill done'; fill.style.width = '';
+      dot.className  = 'prog-dot done';
+    } else if (i === timer.curSeg) {
+      fill.className = 'prog-fill cur';
+      fill.style.width = ((dur - timer.remSeg) / dur * 100).toFixed(2) + '%';
+      dot.className  = 'prog-dot cur';
+    } else {
+      fill.className = 'prog-fill'; fill.style.width = '0%';
+      dot.className  = 'prog-dot';
+    }
+  });
+}
+
+function refreshDisplay() {
+  document.getElementById('d-total').textContent = fmt(timer.remTotal);
+  document.getElementById('d-info').textContent  =
+    `第 ${timer.curSeg+1} 段：剩 ${fmt(timer.remSeg)}　共 ${timer.durs.length} 段`;
+  refreshProgressBar();
+}
+
+// ── Timer Logic ──────────────────────────────────────
+let tickInterval = null;
+
+function tick() {
+  if (!timer.running || timer.paused) return;
+  timer.remTotal--; timer.remSeg--;
+  if (timer.remSeg <= 0) {
+    const isLast = timer.curSeg >= timer.durs.length - 1;
+    if (isLast) {
+      timer.remTotal = Math.max(timer.remTotal, 0); timer.remSeg = 0; timer.running = false;
+      refreshDisplay(); sfxFinalEnd(); setOwlsState('thumbsup'); clearInterval(tickInterval);
+      const b = document.getElementById('btn-pause'); b.textContent = '✅ 完成'; b.disabled = true;
+      return;
+    } else {
+      sfxSegEnd(); setOwlsState('jump'); timer.curSeg++; timer.remSeg = timer.durs[timer.curSeg];
+    }
+  }
+  timer.remTotal = Math.max(timer.remTotal, 0); refreshDisplay();
+}
+
+function startTimer() {
+  // Read current input values
+  const durs = segTimes.map((_, i) => {
+    const m = Math.max(0, Math.min(99, parseInt(document.getElementById(`em${i}`).value)||0));
+    const s = Math.max(0, Math.min(59, parseInt(document.getElementById(`es${i}`).value)||0));
+    return m * 60 + s;
+  });
+  const total = durs.reduce((a,b) => a+b, 0);
+  if (total === 0) { alert('請至少設定一段時間！'); return; }
+
+  timer = { running:true, paused:false, durs, total, remTotal:total, curSeg:0, remSeg:durs[0] };
+
+  document.getElementById('v-settings').style.display = 'none';
+  document.getElementById('v-timer').style.display    = 'block';
+
+  buildProgressBar(); refreshDisplay();
+  initTimerOwls();
+  lastTs = 0; if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(animLoop);
+  setOwlsState('run');
+  clearInterval(tickInterval); tickInterval = setInterval(tick, 1000);
+}
+
+// ── Buttons ──────────────────────────────────────────
+document.getElementById('btn-start').addEventListener('click', () => { getACtx().resume(); startTimer(); });
+document.getElementById('btn-pause').addEventListener('click', () => {
+  if (!timer.running) return;
+  timer.paused = !timer.paused;
+  document.getElementById('btn-pause').textContent = timer.paused ? '▶ 繼續' : '⏸ 暫停';
+  setOwlsState(timer.paused ? 'idle' : 'run');
+});
+document.getElementById('btn-reset').addEventListener('click', () => {
+  clearInterval(tickInterval); if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  timer.running = false; timer.paused = false; lastTs = 0;
+  const b = document.getElementById('btn-pause'); b.textContent = '⏸ 暫停'; b.disabled = false;
+  document.getElementById('v-timer').style.display    = 'none';
+  document.getElementById('v-settings').style.display = 'block';
+});
+
+// ── Init ─────────────────────────────────────────────
+renderSegList();
+initSettingsGrass();
+</script>
+</body>
+</html>
