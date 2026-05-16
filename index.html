@@ -94,7 +94,7 @@ h1{font-size:1.5rem;font-weight:700;color:var(--g2);letter-spacing:3px;margin-bo
 
 /* Owl wrapper */
 .owl-wrap{position:absolute;display:flex;align-items:center;justify-content:center;user-select:none}
-.owl-wrap img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
+.owl-wrap img{width:100%;height:100%;object-fit:contain}
 .owl-emoji{display:none;font-size:38px;line-height:1;text-align:center}
 </style>
 </head>
@@ -137,12 +137,13 @@ h1{font-size:1.5rem;font-weight:700;color:var(--g2);letter-spacing:3px;margin-bo
 <script>
 'use strict';
 
+const THEME = 'owl';
 const IMG = {
-  run:      './owl-run.svg',
-  idle:     './owl-idle.svg',
-  jump:     './owl-jump.svg',
-  thumbsup: './owl-thumbsup.svg',
-  wave:     './owl-wave.svg',
+  run:      `./themes/${THEME}/run.svg`,
+  idle:     `./themes/${THEME}/idle.svg`,
+  jump:     `./themes/${THEME}/jump.svg`,
+  thumbsup: `./themes/${THEME}/thumbsup.svg`,
+  wave:     `./themes/${THEME}/wave.svg`,
 };
 const EMOJI = { run:'🦉', idle:'🦉', jump:'🦉', thumbsup:'🦉👍', wave:'🦉👋' };
 
@@ -217,7 +218,7 @@ function initSettingsGrass() {
 }
 
 // ── Owl element factory ──────────────────────────────
-const OWL_W = 56, GROUND = 34;
+const OWL_W = 84, GROUND = 34;
 
 function makeOwlEl() {
   const wrap = document.createElement('div');
