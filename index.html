@@ -61,6 +61,10 @@ h1{font-size:1.5rem;font-weight:400;color:var(--g2);letter-spacing:6px;margin-bo
 .start-btn{width:100%;padding:15px;background:var(--g1);color:#fff;border:none;
   border-radius:14px;font-size:1.05rem;letter-spacing:3px;cursor:pointer;transition:.2s}
 .start-btn:hover{background:var(--g2)}
+.theme-btn{width:100%;padding:10px;background:transparent;color:var(--g1);
+  border:1.5px solid var(--g1);border-radius:14px;font-size:.9rem;
+  letter-spacing:2px;cursor:pointer;transition:.2s;margin-bottom:10px}
+.theme-btn:hover{background:var(--g3)}
 
 /* Timer display */
 .time-big{font-size:4.5rem;font-weight:800;color:var(--g2);text-align:center;
@@ -114,6 +118,7 @@ h1{font-size:1.5rem;font-weight:400;color:var(--g2);letter-spacing:6px;margin-bo
     <div id="seg-list"></div>
   </div>
   <div class="grass-area w" id="g-settings"><div class="grass-ground"></div></div>
+  <button class="theme-btn" id="btn-theme">Switch Theme · owl</button>
   <button class="start-btn" id="btn-start">▶ 開 始 計 時</button>
 </div>
 
@@ -137,15 +142,20 @@ h1{font-size:1.5rem;font-weight:400;color:var(--g2);letter-spacing:6px;margin-bo
 <script>
 'use strict';
 
-const THEME = 'owl';
-const IMG = {
-  run:      `./themes/${THEME}/run.svg`,
-  idle:     `./themes/${THEME}/idle.svg`,
-  jump:     `./themes/${THEME}/jump.svg`,
-  thumbsup: `./themes/${THEME}/thumbsup.svg`,
-  wave:     `./themes/${THEME}/wave.svg`,
-};
-const EMOJI = { run:'🦉', idle:'🦉', jump:'🦉', thumbsup:'🦉👍', wave:'🦉👋' };
+const THEMES = ['owl', 'jaguar'];
+const THEME_EMOJI = { owl:'🦉', jaguar:'🐆' };
+let themeIdx = 0;
+function buildIMG(theme) {
+  return {
+    run:      `./themes/${theme}/run.svg`,
+    idle:     `./themes/${theme}/idle.svg`,
+    jump:     `./themes/${theme}/jump.svg`,
+    thumbsup: `./themes/${theme}/thumbsup.svg`,
+    wave:     `./themes/${theme}/wave.svg`,
+  };
+}
+let IMG = buildIMG(THEMES[themeIdx]);
+let EMOJI = (e => ({ run:e, idle:e, jump:e, thumbsup:e+'👍', wave:e+'👋' }))(THEME_EMOJI[THEMES[themeIdx]]);
 
 // ── Audio ────────────────────────────────────────────
 let _actx;
@@ -446,6 +456,18 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   document.getElementById('v-timer').style.display    = 'none';
   document.getElementById('v-settings').style.display = 'block';
 });
+
+// ── Theme Switch ─────────────────────────────────────
+function switchTheme() {
+  themeIdx = (themeIdx + 1) % THEMES.length;
+  const theme = THEMES[themeIdx];
+  IMG = buildIMG(theme);
+  const e = THEME_EMOJI[theme];
+  Object.assign(EMOJI, { run:e, idle:e, jump:e, thumbsup:e+'👍', wave:e+'👋' });
+  initSettingsGrass();
+  document.getElementById('btn-theme').textContent = `Switch Theme · ${theme}`;
+}
+document.getElementById('btn-theme').addEventListener('click', switchTheme);
 
 // ── Init ─────────────────────────────────────────────
 renderSegList();
