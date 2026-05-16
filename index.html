@@ -221,7 +221,7 @@ function initSettingsGrass() {
   const g = document.getElementById('g-settings');
   g.querySelectorAll('.owl-wrap').forEach(e => e.remove());
   const W = g.clientWidth || 480;
-  const states = ['wave', 'run', 'jump', 'thumbsup'];
+  const states = ['idle', 'run', 'jump', 'thumbsup'];
   states.forEach((state, i) => {
     const wrap = makeOwlEl();
     const x = Math.round((W - OWL_W) * (i / (states.length - 1)));
