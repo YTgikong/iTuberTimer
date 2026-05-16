@@ -220,11 +220,15 @@ document.getElementById('btn-seg-plus').addEventListener('click', () => {
 function initSettingsGrass() {
   const g = document.getElementById('g-settings');
   g.querySelectorAll('.owl-wrap').forEach(e => e.remove());
-
-  const wrap = makeOwlEl();
-  wrap.style.cssText += 'bottom:34px;left:50%;transform:translateX(-50%);animation:float 2.4s ease-in-out infinite;';
-  setOwlEl(wrap, 'wave');
-  g.appendChild(wrap);
+  const W = g.clientWidth || 480;
+  const states = ['wave', 'run', 'jump', 'thumbsup'];
+  states.forEach((state, i) => {
+    const wrap = makeOwlEl();
+    const x = Math.round((W - OWL_W) * (i / (states.length - 1)));
+    wrap.style.cssText += `bottom:34px;left:${x}px;`;
+    setOwlEl(wrap, state);
+    g.appendChild(wrap);
+  });
 }
 
 // ── Owl element factory ──────────────────────────────
