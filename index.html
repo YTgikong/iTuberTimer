@@ -405,22 +405,32 @@ function refreshDisplay() {
 
 // ── Timer Logic ──────────────────────────────────────
 let tickInterval = null;
+let lastTickTime = 0;
 
 function tick() {
   if (!timer.running || timer.paused) return;
-  timer.remTotal--; timer.remSeg--;
-  if (timer.remSeg <= 0) {
-    const isLast = timer.curSeg >= timer.durs.length - 1;
-    if (isLast) {
-      timer.remTotal = Math.max(timer.remTotal, 0); timer.remSeg = 0; timer.running = false;
-      refreshDisplay(); sfxFinalEnd(); setOwlsState('thumbsup'); clearInterval(tickInterval);
-      const b = document.getElementById('btn-pause'); b.textContent = '✅ 完成'; b.disabled = true;
-      return;
-    } else {
-      sfxSegEnd(); setOwlsState('jump'); timer.curSeg++; timer.remSeg = timer.durs[timer.curSeg];
+  const now = Date.now();
+  const secs = lastTickTime ? Math.max(1, Math.round((now - lastTickTime) / 1000)) : 1;
+  lastTickTime = now;
+
+  for (let s = 0; s < secs; s++) {
+    timer.remTotal--;
+    timer.remSeg--;
+    if (timer.remSeg <= 0) {
+      const isLast = timer.curSeg >= timer.durs.length - 1;
+      if (isLast) {
+        timer.remTotal = 0; timer.remSeg = 0; timer.running = false;
+        refreshDisplay(); sfxFinalEnd(); setOwlsState('thumbsup'); clearInterval(tickInterval);
+        const b = document.getElementById('btn-pause'); b.textContent = '✅ 完成'; b.disabled = true;
+        return;
+      } else {
+        sfxSegEnd(); setOwlsState('jump'); timer.curSeg++; timer.remSeg = timer.durs[timer.curSeg];
+      }
     }
+    if (timer.remTotal <= 0) break;
   }
-  timer.remTotal = Math.max(timer.remTotal, 0); refreshDisplay();
+  timer.remTotal = Math.max(timer.remTotal, 0);
+  refreshDisplay();
 }
 
 function startTimer() {
@@ -443,7 +453,7 @@ function startTimer() {
   lastTs = 0; if (rafId) cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(animLoop);
   setOwlsState('run');
-  clearInterval(tickInterval); tickInterval = setInterval(tick, 1000);
+  clearInterval(tickInterval); lastTickTime = Date.now(); tickInterval = setInterval(tick, 1000);
 }
 
 // ── Buttons ──────────────────────────────────────────
@@ -451,6 +461,7 @@ document.getElementById('btn-start').addEventListener('click', () => { getACtx()
 document.getElementById('btn-pause').addEventListener('click', () => {
   if (!timer.running) return;
   timer.paused = !timer.paused;
+  if (!timer.paused) lastTickTime = Date.now();
   document.getElementById('btn-pause').textContent = timer.paused ? '▶ 繼續' : '⏸ 暫停';
   setOwlsState(timer.paused ? 'idle' : 'run');
 });
@@ -473,6 +484,10 @@ function switchTheme() {
   document.getElementById('btn-theme').textContent = `Switch Theme · ${theme}`;
 }
 document.getElementById('btn-theme').addEventListener('click', switchTheme);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && timer.running && !timer.paused) tick();
+});
 
 // ── Init ─────────────────────────────────────────────
 renderSegList();
