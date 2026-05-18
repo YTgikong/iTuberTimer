@@ -405,16 +405,16 @@ function refreshDisplay() {
 
 // ── Timer Logic ──────────────────────────────────────
 let tickInterval = null;
-let lastTickTime = 0;
+let epochWall = 0;  // Date.now() when current run epoch started
+let epochRem  = 0;  // remTotal at that moment
 
 function tick() {
   if (!timer.running || timer.paused) return;
-  const now = Date.now();
-  const secs = lastTickTime ? Math.max(1, Math.round((now - lastTickTime) / 1000)) : 1;
-  lastTickTime = now;
+  const targetRem = Math.max(epochRem - Math.floor((Date.now() - epochWall) / 1000), 0);
+  const drop = timer.remTotal - targetRem;
+  if (drop <= 0) return;
 
-  for (let s = 0; s < secs; s++) {
-    timer.remTotal--;
+  for (let s = 0; s < drop; s++) {
     timer.remSeg--;
     if (timer.remSeg <= 0) {
       const isLast = timer.curSeg >= timer.durs.length - 1;
@@ -427,9 +427,8 @@ function tick() {
         sfxSegEnd(); setOwlsState('jump'); timer.curSeg++; timer.remSeg = timer.durs[timer.curSeg];
       }
     }
-    if (timer.remTotal <= 0) break;
   }
-  timer.remTotal = Math.max(timer.remTotal, 0);
+  timer.remTotal = targetRem;
   refreshDisplay();
 }
 
@@ -453,7 +452,9 @@ function startTimer() {
   lastTs = 0; if (rafId) cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(animLoop);
   setOwlsState('run');
-  clearInterval(tickInterval); lastTickTime = Date.now(); tickInterval = setInterval(tick, 1000);
+  clearInterval(tickInterval);
+  epochWall = Date.now(); epochRem = total;
+  tickInterval = setInterval(tick, 500);
 }
 
 // ── Buttons ──────────────────────────────────────────
@@ -461,7 +462,7 @@ document.getElementById('btn-start').addEventListener('click', () => { getACtx()
 document.getElementById('btn-pause').addEventListener('click', () => {
   if (!timer.running) return;
   timer.paused = !timer.paused;
-  if (!timer.paused) lastTickTime = Date.now();
+  if (!timer.paused) { epochWall = Date.now(); epochRem = timer.remTotal; }
   document.getElementById('btn-pause').textContent = timer.paused ? '▶ 繼續' : '⏸ 暫停';
   setOwlsState(timer.paused ? 'idle' : 'run');
 });
