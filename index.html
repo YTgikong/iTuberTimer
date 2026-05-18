@@ -353,7 +353,7 @@ function buildProgressBar() {
   const track  = document.getElementById('p-track');
   const labels = document.getElementById('p-labels');
   track.innerHTML = ''; labels.innerHTML = '';
-  let cumPct = 0;
+  let cumPct = 0, cumTime = 0;
   timer.durs.forEach((dur, i) => {
     const pct = dur / timer.total * 100;
     const n   = timer.durs.length;
@@ -366,13 +366,14 @@ function buildProgressBar() {
     fill.className = 'prog-fill'; fill.id = `pf${i}`;
     seg.appendChild(fill); track.appendChild(seg);
     cumPct += pct;
+    cumTime += dur;
     const dot = document.createElement('div');
     dot.className = 'prog-dot'; dot.id = `pd${i}`;
     dot.style.left = `calc(${cumPct}% - 7px)`;
     track.appendChild(dot);
     const lbl = document.createElement('div');
     lbl.className = 'prog-label'; lbl.style.width = pct + '%';
-    lbl.textContent = fmt(dur); labels.appendChild(lbl);
+    lbl.textContent = fmt(cumTime); labels.appendChild(lbl);
   });
 }
 
